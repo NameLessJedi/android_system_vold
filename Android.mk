@@ -21,6 +21,7 @@ LOCAL_SRC_FILES:=                                      \
                   logwrapper.c                         \
                   Process.cpp                          \
                   Fat.cpp                              \
+                  Ext2.cpp                             \
                   Loop.cpp                             \
                   Devmapper.cpp                        \
                   ResponseCode.cpp                     \
