@@ -40,7 +40,7 @@
 #include "VolumeManager.h"
 #include "ResponseCode.h"
 #include "Fat.h"
-#include "Ext2.h"
+#include "Ext.h"
 #include "Process.h"
 
 extern "C" void dos_partition_dec(void const *pp, struct dos_partition *d);
