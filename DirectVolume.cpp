@@ -88,6 +88,8 @@ int DirectVolume::handleBlockEvent(NetlinkEvent *evt) {
                 int minor = atoi(evt->findParam("MINOR"));
                 char nodepath[255];
 
+                evt->dump();
+
                 snprintf(nodepath,
                          sizeof(nodepath), "/dev/block/vold/%d:%d",
                          major, minor);
