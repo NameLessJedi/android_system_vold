@@ -38,6 +38,9 @@ public:
     static const int State_Shared     = 7;
     static const int State_SharedMnt  = 8;
 
+    static const int FS_Fat  = 0;
+    static const int FS_Ext  = 1;
+
     static const char *SECDIR;
     static const char *SEC_STGDIR;
     static const char *SEC_STG_SECIMGDIR;
@@ -49,6 +52,7 @@ protected:
     char *mMountpoint;
     VolumeManager *mVm;
     bool mDebug;
+    int mFsType;
 
     /*
      * The major/minor tuple of the currently mounted filesystem.
@@ -57,7 +61,7 @@ protected:
     dev_t mPreviouslyMountedKdev;
 
 public:
-    Volume(VolumeManager *vm, const char *label, const char *mount_point);
+    Volume(VolumeManager *vm, const char *label, const char *mount_point, int fs_type);
     virtual ~Volume();
 
     int mountVol();

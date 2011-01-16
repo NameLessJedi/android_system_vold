@@ -156,10 +156,9 @@ void VolumeManager::handleBlockEvent(NetlinkEvent *evt) {
     for (it = mVolumes->begin(); it != mVolumes->end(); ++it) {
         if (!(*it)->handleBlockEvent(evt)) {
 #ifdef NETLINK_DEBUG
-            SLOGD("Device '%s' event handled by volume %s\n", devpath, (*it)->getLabel());
+            SLOGD("Device '%s' event handled by volume %s (%s) \n", devpath, (*it)->getLabel(),(*it)->getMountpoint());
 #endif
             hit = true;
-            break;
         }
     }
 
@@ -179,6 +178,7 @@ int VolumeManager::listVolumes(SocketClient *cli) {
                  (*i)->getLabel(), (*i)->getMountpoint(),
                  (*i)->getState());
         cli->sendMsg(ResponseCode::VolumeListResult, buffer, false);
+	SLOGI("listVolumes: %s", buffer);
         free(buffer);
     }
     cli->sendMsg(ResponseCode::CommandOkay, "Volumes listed.", false);

@@ -99,7 +99,7 @@ static const char *stateToStr(int state) {
         return "Unknown-Error";
 }
 
-Volume::Volume(VolumeManager *vm, const char *label, const char *mount_point) {
+Volume::Volume(VolumeManager *vm, const char *label, const char *mount_point, int fs_type) {
     mVm = vm;
     mDebug = false;
     mLabel = strdup(label);
@@ -107,6 +107,7 @@ Volume::Volume(VolumeManager *vm, const char *label, const char *mount_point) {
     mState = Volume::State_Init;
     mCurrentlyMountedKdev = -1;
     mPreviouslyMountedKdev = -1;
+    mFsType = fs_type;
 }
 
 Volume::~Volume() {
@@ -172,7 +173,7 @@ void Volume::setState(int state) {
 
     mState = state;
 
-    SLOGD("Volume %s state changing %d (%s) -> %d (%s)", mLabel,
+    SLOGD("Volume %s (%s) state changing %d (%s) -> %d (%s)", mLabel, mMountpoint,
          oldState, stateToStr(oldState), mState, stateToStr(mState));
     snprintf(msg, sizeof(msg),
              "Volume %s %s state changed from %d (%s) to %d (%s)", getLabel(),
@@ -233,7 +234,12 @@ int Volume::formatVol() {
     sprintf(devicePath, "/dev/block/vold/%d:%d",
             MAJOR(partNode), MINOR(partNode));
 
-    if (Fat::format(devicePath, 0)) {
+    if (mFsType == FS_Fat && Fat::format(devicePath, 0)) {
+        SLOGE("Failed to format (%s)", strerror(errno));
+        goto err;
+    }
+
+    if (mFsType == FS_Ext && Ext::format(devicePath)) {
         SLOGE("Failed to format (%s)", strerror(errno));
         goto err;
     }
@@ -314,56 +320,81 @@ int Volume::mountVol() {
         errno = 0;
         setState(Volume::State_Checking);
 
-        if (Fat::check(devicePath)) {
-            if (errno == ENODATA) {
-                SLOGW("%s does not contain a FAT filesystem\n", devicePath);
+        if (mFsType == FS_Fat) {
+            if (Fat::check(devicePath)) {
+                if (errno == ENODATA) {
+                    SLOGW("%s does not contain a FAT filesystem\n", devicePath);
+                    continue;
+                }
+                errno = EIO;
+                /* Badness - abort the mount */
+                SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
+                setState(Volume::State_Idle);
+                return -1;
+            }
+
+            /*
+             * Mount the device on our internal staging mountpoint so we can
+             * muck with it before exposing it to non priviledged users.
+             */
+            errno = 0;
+            if (Fat::doMount(devicePath, "/mnt/secure/staging", false, false, 1000, 1015, 0702, true)) {
+                SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
                 continue;
             }
-            errno = EIO;
-            /* Badness - abort the mount */
-            SLOGE("%s failed FS checks (%s)", devicePath, strerror(errno));
-            setState(Volume::State_Idle);
-            return -1;
+
+            SLOGI("Device %s, target %s mounted @ /mnt/secure/staging", devicePath, getMountpoint());
+
+            protectFromAutorunStupidity();
+
+            /* There can be only one SEC_ASECDIR, so let it be EXTERNAL_STORAGE */
+            const char *externalPath = getenv("EXTERNAL_STORAGE") ?: "/mnt/sdcard";
+            if (0 != strcmp(getMountpoint(), externalPath)) {
+                SLOGI("Skipping bindmounts for alternate volume (%s)", getMountpoint());
+            } else if (createBindMounts()) {
+                SLOGE("Failed to create bindmounts (%s)", strerror(errno));
+                umount("/mnt/secure/staging");
+                setState(Volume::State_Idle);
+                return -1;
+            }
+
+            /*
+             * Now that the bindmount trickery is done, atomically move the
+             * whole subtree to expose it to non priviledged users.
+             */
+            if (doMoveMount("/mnt/secure/staging", getMountpoint(), false)) {
+                SLOGE("Failed to move mount (%s)", strerror(errno));
+                umount("/mnt/secure/staging");
+                setState(Volume::State_Idle);
+                return -1;
+            }
+            setState(Volume::State_Mounted);
+            mCurrentlyMountedKdev = deviceNodes[i];
+            return 0;
         }
+        if (mFsType == FS_Ext) {
+            if (Ext::check(devicePath)) {
+                if (errno == ENODATA) {
+                    SLOGW("%s does not contain EXT filesystem\n", devicePath);
+                    continue;
+                }
+                errno = EIO;
+                SLOGE("%s failed fsck (%s)", devicePath, strerror(errno));
+                setState(Volume::State_Idle);
+                return -1;
+            }
 
-        /*
-         * Mount the device on our internal staging mountpoint so we can
-         * muck with it before exposing it to non priviledged users.
-         */
-        errno = 0;
-        if (Fat::doMount(devicePath, "/mnt/secure/staging", false, false, 1000, 1015, 0702, true)) {
-            SLOGE("%s failed to mount via VFAT (%s)\n", devicePath, strerror(errno));
-            continue;
+            const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?: "/sd-ext";
+            bool chkDirs = (strcmp(getMountpoint(), sdextPath) == 0);
+            if (Ext::doMount(devicePath, getMountpoint(), chkDirs, false)) {
+                SLOGE("%s failed to mount Ext fs (%s)\n", devicePath, strerror(errno));
+                continue;
+            }
+            SLOGI("Device %s mounted @ %s", devicePath, getMountpoint());
+            setState(Volume::State_Mounted);
+            mCurrentlyMountedKdev = deviceNodes[i];
+            return 0;
         }
-
-        SLOGI("Device %s, target %s mounted @ /mnt/secure/staging", devicePath, getMountpoint());
-
-        protectFromAutorunStupidity();
-
-        /* There can be only one SEC_ASECDIR, so let it be EXTERNAL_STORAGE */
-        const char *externalPath = getenv("EXTERNAL_STORAGE") ?: "/mnt/sdcard";
-        if (0 != strcmp(getMountpoint(), externalPath)) {
-            SLOGI("Skipping bindmounts for alternate volume (%s)", getMountpoint());
-        } else if (createBindMounts()) {
-            SLOGE("Failed to create bindmounts (%s)", strerror(errno));
-            umount("/mnt/secure/staging");
-            setState(Volume::State_Idle);
-            return -1;
-        }
-
-        /*
-         * Now that the bindmount trickery is done, atomically move the
-         * whole subtree to expose it to non priviledged users.
-         */
-        if (doMoveMount("/mnt/secure/staging", getMountpoint(), false)) {
-            SLOGE("Failed to move mount (%s)", strerror(errno));
-            umount("/mnt/secure/staging");
-            setState(Volume::State_Idle);
-            return -1;
-        }
-        setState(Volume::State_Mounted);
-        mCurrentlyMountedKdev = deviceNodes[i];
-        return 0;
     }
 
     SLOGE("Volume %s found no suitable devices for mounting :(\n", getLabel());

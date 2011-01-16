@@ -22,10 +22,10 @@
 class Ext {
 public:
     static int check(const char *fsPath);
-    static int doMount(const char *fsPath, const char *mountPoint, bool ro,
-                       bool remount, int ownerUid, int ownerGid, int permMask,
-                       bool createLost);
-    static int format(const char *fsPath, unsigned int numSectors);
+    static int doMount(const char *fsPath, const char *mountPoint,
+                       bool chkDirs, bool remount);
+    static int format(const char *fsPath);
+    static void chkDir(const char * mountpoint, const char * path);
 };
 
 #endif

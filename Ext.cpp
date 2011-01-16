@@ -88,34 +88,46 @@ int Ext::check(const char *fsPath) {
     return 0;
 }
 
+void Ext::chkDir(const char * mountpoint, const char * path) {
+    char *full_path;
+    asprintf(&full_path, "%s/%s", mountpoint, path);
+    if (access(full_path, F_OK) != 0) {
+        if (mkdir(full_path, 0771) != 0) {
+            SLOGE("Unable to create %s!", full_path);
+        }
+    }
+    free(full_path);
+    return;
+}
+
 int Ext::doMount(const char *fsPath, const char *mountPoint,
-                 bool ro, bool remount, int ownerUid, int ownerGid,
-                 int permMask, bool createLost) {
+                 bool chkDirs, bool remount) {
     int rc;
     unsigned long flags;
     char mountData[255];
 
-    flags = MS_NODEV | MS_NOEXEC | MS_NOSUID | MS_DIRSYNC;
-
-    flags |= (ro ? MS_RDONLY : 0);
+    flags = MS_NODEV | MS_NOATIME | MS_NODIRATIME;
     flags |= (remount ? MS_REMOUNT : 0);
 
-    sprintf(mountData,
-            "utf8,uid=%d,gid=%d,fmask=%o,dmask=%o,shortname=mixed",
-            ownerUid, ownerGid, permMask, permMask);
+    sprintf(mountData,"barrier=1,data=ordered,noauto_da_alloc");
 
-    rc = mount(fsPath, mountPoint, "auto", flags, mountData);
+    rc = mount(fsPath, mountPoint, "ext4", flags, mountData);
 
     if (rc && errno == EROFS) {
         SLOGE("%s appears to be a read only filesystem - retrying mount RO", fsPath);
         flags |= MS_RDONLY;
-        rc = mount(fsPath, mountPoint, "auto", flags, mountData);
+        rc = mount(fsPath, mountPoint, "ext4", flags, mountData);
     }
 
+    if (rc == 0 && chkDirs) {
+        chkDir(mountPoint, "app");
+        chkDir(mountPoint, "app-private");
+        chkDir(mountPoint, "dalvik-cache");
+    }
     return rc;
 }
 
-int Ext::format(const char *fsPath, unsigned int numSectors) {
+int Ext::format(const char *fsPath) {
     int fd;
     const char *args[3];
     int rc;

@@ -42,7 +42,7 @@ int main() {
     CommandListener *cl;
     NetlinkManager *nm;
 
-    SLOGI("Vold 2.1 (the revenge) firing up");
+    SLOGI("xVold 2.1 (the revenge of the sith) firing up");
 
     mkdir("/dev/block/vold", 0755);
 
@@ -112,6 +112,15 @@ int main() {
         SLOGE("Unable to start CommandListener (%s)", strerror(errno));
         exit(1);
     }
+
+    /*
+     * Lookup SD_EXT_DIRECTORY env and try to mount it
+     *
+     * FIXME: figure out how to use filesystem labels and use that
+     */
+    const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?:"/sd-ext";
+    SLOGI("Trying to mount %s", sdextPath);
+    vm->mountVolume(sdextPath);
 
     // Eventually we'll become the monitoring thread
     while(1) {
@@ -200,9 +209,10 @@ static int process_config(VolumeManager *vm) {
             goto out_syntax;
         }
 
-        if (!strcmp(type, "dev_mount")) {
+        if (!strcmp(type, "dev_mount") || !strcmp(type, "ext_mount")) {
             DirectVolume *dv = NULL;
             char *part;
+	    int fs_type = Volume::FS_Fat;
 
             if (!(part = strtok_r(NULL, delim, &save_ptr))) {
                 SLOGE("Error parsing partition");
@@ -213,10 +223,13 @@ static int process_config(VolumeManager *vm) {
                 goto out_syntax;
             }
 
+            if (!strcmp(type, "ext_mount")) {
+                fs_type = Volume::FS_Ext;
+	        }
             if (!strcmp(part, "auto")) {
-                dv = new DirectVolume(vm, label, mount_point, -1);
+                dv = new DirectVolume(vm, label, mount_point, -1, fs_type);
             } else {
-                dv = new DirectVolume(vm, label, mount_point, atoi(part));
+                dv = new DirectVolume(vm, label, mount_point, atoi(part), fs_type);
             }
 
             while (char *sysfs_path = strtok_r(NULL, delim, &save_ptr)) {

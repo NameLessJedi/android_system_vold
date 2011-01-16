@@ -33,11 +33,12 @@
 #define PARTITION_DEBUG
 
 DirectVolume::DirectVolume(VolumeManager *vm, const char *label,
-                           const char *mount_point, int partIdx) :
-              Volume(vm, label, mount_point) {
+                           const char *mount_point, int partIdx, int fs_type) :
+              Volume(vm, label, mount_point, fs_type) {
     mPartIdx = partIdx;
 
     mPaths = new PathCollection();
+    mBinds = new BindCollection();
     for (int i = 0; i < MAX_PARTITIONS; i++)
         mPartMinors[i] = -1;
     mPendingPartMap = 0;
@@ -50,14 +51,23 @@ DirectVolume::DirectVolume(VolumeManager *vm, const char *label,
 
 DirectVolume::~DirectVolume() {
     PathCollection::iterator it;
+    BindCollection::iterator it2;
 
     for (it = mPaths->begin(); it != mPaths->end(); ++it)
         free(*it);
     delete mPaths;
+    for (it2 = mBinds->begin(); it2 != mBinds->end(); ++it2)
+       free(*it2);
+    delete mBinds;
 }
 
 int DirectVolume::addPath(const char *path) {
     mPaths->push_back(strdup(path));
+    return 0;
+}
+
+int DirectVolume::addBind(const char *path) {
+    mBinds->push_back(strdup(path));
     return 0;
 }
 
@@ -87,8 +97,6 @@ int DirectVolume::handleBlockEvent(NetlinkEvent *evt) {
                 int major = atoi(evt->findParam("MAJOR"));
                 int minor = atoi(evt->findParam("MINOR"));
                 char nodepath[255];
-
-                evt->dump();
 
                 snprintf(nodepath,
                          sizeof(nodepath), "/dev/block/vold/%d:%d",

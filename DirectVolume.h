@@ -24,12 +24,14 @@
 #define MAX_PARTS 4
 
 typedef android::List<char *> PathCollection;
+typedef android::List<char *> BindCollection;
 
 class DirectVolume : public Volume {
 public:
     static const int MAX_PARTITIONS = 4;
 protected:
     PathCollection *mPaths;
+    BindCollection *mBinds;
     int            mPartIdx;
     int            mDiskMajor;
     int            mDiskMinor;
@@ -38,10 +40,11 @@ protected:
     unsigned char  mPendingPartMap;
 
 public:
-    DirectVolume(VolumeManager *vm, const char *label, const char *mount_point, int partIdx);
+    DirectVolume(VolumeManager *vm, const char *label, const char *mount_point, int partIdx, int fs_type);
     virtual ~DirectVolume();
 
     int addPath(const char *path);
+    int addBind(const char *path);
 
     int handleBlockEvent(NetlinkEvent *evt);
     dev_t getDiskDevice();
