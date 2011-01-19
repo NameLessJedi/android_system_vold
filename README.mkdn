@@ -1,0 +1,24 @@
+xVold
+=======
+
+What is  xVold?
+----------------
+Vold is Android volume management daemon.
+
+xVold is extended version made to help in "native" (no script) Apps2SDExt implementation
+created by Firerat and NLJ. xVold can mount Ext4 partition at /sd-ext and create all needed
+directories.
+
+Here is an example of vold.fstab that will mount sd-ext at boot time:
+
+    ## Format: dev_mount <label> <mount_point> <part> <sysfs_path1...> 
+    dev_mount sdcard /mnt/sdcard auto /devices/platform/goldfish_mmc.0 /devices/platform/msm_sdcc.2/mmc_host/mmc1
+    ## Format: ext_mount <label> <mount_point> <part> <sysfs_path1...> 
+    ext_mount sdcard /sd-ext 2 /devices/platform/msm_sdcc.2/mmc_host/mmc1
+
+(Please note that one can safely skip "/devices/platform/goldfish_mmc.0 as it's intended for emulator and not real device)
+
+Donations
+-----------
+Please understand that most of this code came from [CyanogenMod](http://www.cyanogenmod.com) or [AOSP](http://source.android.com/) I just modified it to suit my needs. If you like it - great! Go, make some donation to awsome folks from CyanogenMod team.
+Already donated to them and still some pennies burning hole in your pocket? I'll be more than glad to accept some of them. [Just drop me a message](https://github.com/NameLessJedi)
