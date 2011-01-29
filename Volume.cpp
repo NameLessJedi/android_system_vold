@@ -385,7 +385,7 @@ int Volume::mountVol() {
             }
 
             const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?: "/sd-ext";
-            char *mountPoint = getMountpoint();
+            const char *mountPoint = getMountpoint();
             bool chkDirs = (strcmp(mountPoint, sdextPath) == 0);
             if (Ext::doMount(devicePath, mountPoint, chkDirs, false)) {
                 SLOGE("%s failed to mount Ext fs (%s)\n", devicePath, strerror(errno));
