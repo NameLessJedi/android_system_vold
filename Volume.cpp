@@ -399,15 +399,16 @@ int Volume::mountVol() {
                 char *bindpath;
 
                 asprintf(&bindpath, "%s/data", mountPoint);
-                rc = mount(bindpath, "/data/data", NULL, MS_BIND, NULL);
-                if (rc != 0) {
-                    SLOGE("Failed to mount bind %s/data on /data/data\n", mountPoint);
-                    umount(mountPoint);
-                    SLOGE("Unmounted %s\n", mountPoint);
-                    setState(Volume::State_Idle);
-                    return -1;
+                if (!isMountpointMounted("/data/data")) {
+                    rc = mount(bindpath, "/data/data", NULL, MS_BIND, NULL);
+                    if (rc != 0) {
+                        SLOGE("Failed to mount bind %s/data on /data/data\n", mountPoint);
+                        umount(mountPoint);
+                        SLOGE("Unmounted %s\n", mountPoint);
+                        setState(Volume::State_Idle);
+                        return -1;
+                    }
                 }
-
             }
             setState(Volume::State_Mounted);
             mCurrentlyMountedKdev = deviceNodes[i];
