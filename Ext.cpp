@@ -34,7 +34,6 @@
 #define LOG_TAG "Vold"
 
 #include <cutils/log.h>
-#include <cutils/properties.h>
 
 #include "Ext.h"
 
@@ -88,16 +87,54 @@ int Ext::check(const char *fsPath) {
     return 0;
 }
 
-void Ext::chkDir(const char * mountpoint, const char * path) {
+bool Ext::doDir(const char * mountpoint, const char * path) {
     char *full_path;
+    struct stat buffer;
+    int rc;
+    mode_t mode = S_IRWXU | S_IRUSR | S_IWUSR | S_IRWXG | S_IRGRP | S_IWGRP | S_IXGRP | S_IXOTH;
+
     asprintf(&full_path, "%s/%s", mountpoint, path);
-    if (access(full_path, F_OK) != 0) {
-        if (mkdir(full_path, 0771) != 0) {
-            SLOGE("Unable to create %s!", full_path);
+
+    rc = stat(full_path, &buffer);
+    if (rc == 0) {
+        if (S_ISDIR(buffer.st_mode)) {
+            /* check owner & permissions */
+            if (buffer.st_uid != 1000 || buffer.st_gid != 1000)
+                if(chown(full_path, 1000, 1000) != 0) {
+                    SLOGE("Cannot set UID/GID for %s - %s", full_path, strerror(errno));
+                    free(full_path);
+                    return false;
+                }
+            if (buffer.st_mode != mode)
+                if (chmod(full_path, mode) != 0) {
+                    SLOGE("Cannot set permissions on %s - %s", full_path, strerror(errno));
+                    free(full_path);
+                    return false;
+                }
+        } else {
+            SLOGE("%s is not a dir. Retreat!", full_path);
+            free(full_path);
+            return false;
+        }
+    } else {
+        /* This assumes that stat will fail only when full_path
+         * doesn't exists
+         */
+        SLOGI("Creating %s", full_path);
+        if (mkdir(full_path, mode) == 0) {
+            if (chown(full_path, 1000, 1000) != 0) {
+                SLOGE("Cannot set UID/GID for %s - %s", full_path, strerror(errno));
+                free(full_path);
+                return false;
+            }
+        } else {
+            SLOGE("Cannot create dir %s - %s", full_path, strerror(errno));
+            free(full_path);
+            return false;
         }
     }
     free(full_path);
-    return;
+    return true;
 }
 
 int Ext::doMount(const char *fsPath, const char *mountPoint,
@@ -120,9 +157,11 @@ int Ext::doMount(const char *fsPath, const char *mountPoint,
     }
 
     if (rc == 0 && chkDirs) {
-        chkDir(mountPoint, "app");
-        chkDir(mountPoint, "app-private");
-        chkDir(mountPoint, "dalvik-cache");
+        if (!doDir(mountPoint, "app") || !doDir(mountPoint, "app-private") ||
+            !doDir(mountPoint, "dalvik-cache") || !doDir(mountPoint, "data")) {
+            (void)umount(mountPoint);
+            return -1;
+        }
     }
     return rc;
 }

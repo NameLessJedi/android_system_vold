@@ -385,12 +385,31 @@ int Volume::mountVol() {
             }
 
             const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?: "/sd-ext";
-            bool chkDirs = (strcmp(getMountpoint(), sdextPath) == 0);
-            if (Ext::doMount(devicePath, getMountpoint(), chkDirs, false)) {
+            const char *mountPoint = getMountpoint();
+            bool chkDirs = (strcmp(mountPoint, sdextPath) == 0);
+            if (Ext::doMount(devicePath, mountPoint, chkDirs, false)) {
                 SLOGE("%s failed to mount Ext fs (%s)\n", devicePath, strerror(errno));
                 continue;
             }
-            SLOGI("Device %s mounted @ %s", devicePath, getMountpoint());
+            SLOGI("Device %s mounted @ %s", devicePath, mountPoint);
+
+            char value[PROPERTY_VALUE_MAX];
+            property_get("ro.data2sdext", value, "");
+            if (chkDirs & (value[0] == '1')) {
+                char *bindpath;
+
+                asprintf(&bindpath, "%s/data", mountPoint);
+                if (!isMountpointMounted("/data/data")) {
+                    rc = mount(bindpath, "/data/data", NULL, MS_BIND, NULL);
+                    if (rc != 0) {
+                        SLOGE("Failed to mount bind %s/data on /data/data\n", mountPoint);
+                        umount(mountPoint);
+                        SLOGE("Unmounted %s\n", mountPoint);
+                        setState(Volume::State_Idle);
+                        return -1;
+                    }
+                }
+            }
             setState(Volume::State_Mounted);
             mCurrentlyMountedKdev = deviceNodes[i];
             return 0;

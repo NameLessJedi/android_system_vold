@@ -25,7 +25,7 @@ public:
     static int doMount(const char *fsPath, const char *mountPoint,
                        bool chkDirs, bool remount);
     static int format(const char *fsPath);
-    static void chkDir(const char * mountpoint, const char * path);
+    static bool doDir(const char * mountpoint, const char * path);
 };
 
 #endif
