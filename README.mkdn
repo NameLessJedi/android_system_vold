@@ -18,7 +18,14 @@ Here is an example of vold.fstab that will mount sd-ext at boot time:
 
 (Please note that one can safely skip "/devices/platform/goldfish_mmc.0 as it's intended for emulator and not real device)
 
+xVold can mount bind /sd-ext/data on /data/data but will do this only when 
+
+    ro.data2sdext=1
+
+in build.*.prop
+
+
 Donations
 -----------
 Please understand that most of this code came from [CyanogenMod](http://www.cyanogenmod.com) or [AOSP](http://source.android.com/) I just modified it to suit my needs. If you like it - great! Go, make some donation to awsome folks from CyanogenMod team.
-Already donated to them and still some pennies burning hole in your pocket? I'll be more than glad to accept some of them. [Just drop me a message](https://github.com/NameLessJedi)
+Already donated to them and still some pennies burning hole in your pocket? [I'll be more than glad to accept some of them.](https://www.paypal.com/cgi-bin/webscr?cmd=_donations&business=robert%40plukwa%2enet&lc=US&item_number=Android&currency_code=PLN&bn=PP%2dDonationsBF%3abtn_donate_SM%2egif%3aNonHosted)
