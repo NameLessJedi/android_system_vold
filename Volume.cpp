@@ -394,7 +394,7 @@ int Volume::mountVol() {
             SLOGI("Device %s mounted @ %s", devicePath, mountPoint);
 
             char value[PROPERTY_VALUE_MAX];
-            property_get("ro.data2sdext", value, "");
+            property_get("ro.vold.data2sdext", value, "");
             if (chkDirs & (value[0] == '1')) {
                 char *bindpath;
 

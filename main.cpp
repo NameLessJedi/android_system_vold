@@ -27,6 +27,7 @@
 #define LOG_TAG "Vold"
 
 #include "cutils/log.h"
+#include "cutils/properties.h"
 
 #include "VolumeManager.h"
 #include "CommandListener.h"
@@ -118,9 +119,13 @@ int main() {
      *
      * FIXME: figure out how to use filesystem labels and use that
      */
-    const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?:"/sd-ext";
-    SLOGI("Trying to mount %s", sdextPath);
-    vm->mountVolume(sdextPath);
+    char propval[PROPERTY_VALUE_MAX];
+    property_get("ro.vold.sdextonboot", propval, "");
+    if (propval[0] == '1') {
+        const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?:"/sd-ext";
+        SLOGI("Trying to mount %s", sdextPath);
+        vm->mountVolume(sdextPath);
+    }
 
     // Eventually we'll become the monitoring thread
     while(1) {

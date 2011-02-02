@@ -18,11 +18,15 @@ Here is an example of vold.fstab that will mount sd-ext at boot time:
 
 (Please note that one can safely skip "/devices/platform/goldfish_mmc.0 as it's intended for emulator and not real device)
 
-xVold can mount bind /sd-ext/data on /data/data but will do this only when 
+/sd-ext will be mounted on boot when
 
-    ro.data2sdext=1
+    ro.vold.sdextonboot=1
 
 in build.*.prop
+
+Additionally /sd-ext/data can be bind mounted on /data/data when
+
+    ro.vold.data2sdext=1
 
 
 Donations
