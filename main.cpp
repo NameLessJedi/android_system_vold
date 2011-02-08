@@ -43,7 +43,7 @@ int main() {
     CommandListener *cl;
     NetlinkManager *nm;
 
-    SLOGI("xVold 2.1.1 (Revenge of the Sith) firing up");
+    SLOGI("xVold 2.1.3 (Revenge of the Sith) firing up");
 
     mkdir("/dev/block/vold", 0755);
 
@@ -124,7 +124,10 @@ int main() {
     if (propval[0] == '1') {
         const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?:"/sd-ext";
         SLOGI("Trying to mount %s", sdextPath);
-        vm->mountVolume(sdextPath);
+        if (vm->mountVolume(sdextPath) == 0) {
+            // Legacy stuff for Firerat's Settings
+            property_set("cm.a2sd.active","1");
+        }
     }
 
     // Eventually we'll become the monitoring thread
