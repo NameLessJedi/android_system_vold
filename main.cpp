@@ -126,7 +126,9 @@ int main() {
         SLOGI("Trying to mount %s", sdextPath);
         if (vm->mountVolume(sdextPath) == 0) {
             // Legacy stuff for Firerat's Settings
+            SLOGI("About to set legacy prop cm.a2sd.active to 1");
             property_set("cm.a2sd.active","1");
+            SLOGI("Property cm.a2sd.active set");
         }
     }
 
