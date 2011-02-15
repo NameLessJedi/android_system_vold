@@ -43,7 +43,7 @@ int main() {
     CommandListener *cl;
     NetlinkManager *nm;
 
-    SLOGI("xVold 2.1.3 (Revenge of the Sith) firing up");
+    SLOGI("xVold 2.1.3.1 (Revenge of the Sith) firing up");
 
     mkdir("/dev/block/vold", 0755);
 
@@ -125,10 +125,12 @@ int main() {
         const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?:"/sd-ext";
         SLOGI("Trying to mount %s", sdextPath);
         if (vm->mountVolume(sdextPath) == 0) {
+            // Let the framework now that we did it!
+            property_set("sys.vold.sdext","1");
             // Legacy stuff for Firerat's Settings
-            SLOGI("About to set legacy prop cm.a2sd.active to 1");
+            // this should be dropped RSN
             property_set("cm.a2sd.active","1");
-            SLOGI("Property cm.a2sd.active set");
+            SLOGI("System properties set");
         }
     }
 
