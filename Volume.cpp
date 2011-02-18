@@ -565,6 +565,25 @@ int Volume::unmountVol(bool force) {
     setState(Volume::State_Unmounting);
     usleep(1000 * 1000); // Give the framework some time to react
 
+    const char *sdextPath = getenv("SD_EXT_DIRECTORY") ?: "/sd-ext";
+    if (strcmp(getMountpoint(), sdextPath) == 0) {
+        char *dataPath;
+        asprintf(&dataPath,"%s/data", sdextPath);
+        if (isMountpointMounted(dataPath)) {
+            doUnmount(dataPath, false);
+        }
+        if (doUnmount(sdextPath, false) == 0) {
+            setState(Volume::State_Idle);
+            mPreviouslyMountedKdev = mCurrentlyMountedKdev;
+            mCurrentlyMountedKdev = -1;
+            return 0;
+        } else {
+            setState(Volume::State_Mounted);
+            SLOGE("Failed to unmount %s", sdextPath);
+            return -1;
+        }
+    }
+
     /*
      * First move the mountpoint back to our internal staging point
      * so nobody else can muck with it while we work.
