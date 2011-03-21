@@ -42,7 +42,7 @@
 #include "Process.h"
 #include "Asec.h"
 
-#define NETLINK_DEBUG
+// #define NETLINK_DEBUG
 
 VolumeManager *VolumeManager::sInstance = NULL;
 

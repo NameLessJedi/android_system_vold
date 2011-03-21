@@ -30,7 +30,7 @@
 #include "VolumeManager.h"
 #include "ResponseCode.h"
 
-#define PARTITION_DEBUG
+// #define PARTITION_DEBUG
 
 DirectVolume::DirectVolume(VolumeManager *vm, const char *label,
                            const char *mount_point, int partIdx, int fs_type) :
