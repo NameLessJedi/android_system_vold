@@ -43,7 +43,7 @@ int main() {
     CommandListener *cl;
     NetlinkManager *nm;
 
-    SLOGI("xVold 2.1.3.2 (Revenge of the Sith) firing up");
+    SLOGI("xVold 2.1.4 (Revenge of the Sith) firing up");
 
     mkdir("/dev/block/vold", 0755);
 
