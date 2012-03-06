@@ -158,7 +158,8 @@ int Ext::doMount(const char *fsPath, const char *mountPoint,
 
     if (rc == 0 && chkDirs) {
         if (!doDir(mountPoint, "app") || !doDir(mountPoint, "app-private") ||
-            !doDir(mountPoint, "dalvik-cache") || !doDir(mountPoint, "data")) {
+            !doDir(mountPoint, "dalvik-cache") || !doDir(mountPoint, "data") ||
+            !doDir(mountPoint, "system") || !doDir("/data", "system")) {
             (void)umount(mountPoint);
             return -1;
         }

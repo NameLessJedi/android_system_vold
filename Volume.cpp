@@ -402,11 +402,26 @@ int Volume::mountVol() {
                 if (!isMountpointMounted("/data/data")) {
                     rc = mount(bindpath, "/data/data", NULL, MS_BIND, NULL);
                     if (rc != 0) {
-                        SLOGE("Failed to mount bind %s/data on /data/data\n", mountPoint);
+                        SLOGE("Failed to bind mount %s/data on /data/data\n", mountPoint);
                         umount(mountPoint);
                         SLOGE("Unmounted %s\n", mountPoint);
-                        setState(Volume::State_Idle);
+                        //setState(Volume::State_Idle);
                         return -1;
+                    } else {
+                        if (!isMountpointMounted("/data/system")) {
+                            asprintf(&bindpath, "%s/system", mountPoint);
+                            rc = mount(bindpath, "/data/system", NULL, MS_BIND, NULL);
+                            if (rc != 0) {
+                                SLOGE("Failed to bind mount %s/system on /data/system\n", mountPoint);
+                                asprintf(&bindpath, "%s/data", mountPoint);
+                                umount(bindpath);
+                                SLOGE("Unmounted %s\n", bindpath);
+                                umount(mountPoint);
+                                SLOGE("Unmounted %s\n", mountPoint);
+                                //setState(Volume::State_Idle);
+                                return -1;
+                            }
+                        }
                     }
                 }
             }
